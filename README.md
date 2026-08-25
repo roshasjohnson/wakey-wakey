@@ -4,6 +4,19 @@ An Android app that wakes you before your stop.
 
 Save the places you travel to, set how far out you want the warning, and the app notifies you when you get close. Built for dozing off on a bus, train, or cab and not wanting to miss where you get down.
 
+## Interface
+
+These are the design references the interface was built against, not screenshots of the running app. Two differences are deliberate: the heading is white rather than violet, because the accent is reserved for active states, and there is no map behind the sheet.
+
+| | |
+| --- | --- |
+| <img src="docs/design/home-saved-places.png" width="320" alt="Saved places list, each row with its radius, last measured distance and a switch"> | <img src="docs/design/search-results.png" width="320" alt="Search results replacing the saved list while typing"> |
+| **Saved places.** One row per place, showing its alert radius and last measured distance, with a switch to arm it. | **Search.** Results replace the saved list while you type, after three characters. |
+| <img src="docs/design/place-detail-sheet.png" width="320" alt="Bottom sheet with place name, address, radius slider, distance check and delete"> | <img src="docs/design/home-empty.png" width="320" alt="Home screen with the search field and no saved places"> |
+| **Place detail.** Tapping a place opens the radius slider, the on-demand distance check, and delete. | **Empty state.** One line until you save something. |
+
+The `alarm` text in the header of two mockups is an unrendered icon ligature, not a label.
+
 ## How it works
 
 The app registers a geofence, a circle of a chosen radius around each place you are watching, with Android's location services. Android watches for the crossing itself and wakes the app only when it happens, so nothing runs in the background and battery cost stays close to zero.
