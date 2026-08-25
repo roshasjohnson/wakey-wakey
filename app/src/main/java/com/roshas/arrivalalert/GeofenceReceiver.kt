@@ -11,21 +11,37 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingEvent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class GeofenceReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val event = GeofencingEvent.fromIntent(intent) ?: return
-
         if (event.hasError()) return
-
         if (event.geofenceTransition != Geofence.GEOFENCE_TRANSITION_ENTER) return
 
-        showArrivalNotification(context)
+        val firedIds = event.triggeringGeofences?.map { it.requestId }.orEmpty()
+        if (firedIds.isEmpty()) return
+
+        // Reading storage to name the place is a suspend call, so hold the broadcast
+        // open until it finishes. This is a short one-shot, not a running job.
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val saved = getPlaces(context).associateBy { it.id }
+                firedIds.forEach { id ->
+                    notifyArrival(context, saved[id]?.name, id)
+                }
+            } finally {
+                pendingResult.finish()
+            }
+        }
     }
 }
 
-fun showArrivalNotification(context: Context) {
+private fun notifyArrival(context: Context, placeName: String?, placeId: String) {
     val allowed = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(
                 context,
@@ -34,16 +50,24 @@ fun showArrivalNotification(context: Context) {
 
     if (!allowed) return
 
+    val text = if (placeName.isNullOrBlank()) {
+        "You are nearly there"
+    } else {
+        "You are approaching $placeName"
+    }
+
     val notification = NotificationCompat.Builder(context, CHANNEL_ID)
         .setSmallIcon(android.R.drawable.ic_dialog_info)
         .setContentTitle("Wakey wakey")
-        .setContentText("You are nearly there")
+        .setContentText(text)
         .setPriority(NotificationCompat.PRIORITY_HIGH)
         .setAutoCancel(true)
         .build()
 
     try {
-        NotificationManagerCompat.from(context).notify(1, notification)
+        // Keyed off the place so two fences firing together do not overwrite
+        // each other's notification.
+        NotificationManagerCompat.from(context).notify(placeId.hashCode(), notification)
     } catch (e: SecurityException) {
     }
 }

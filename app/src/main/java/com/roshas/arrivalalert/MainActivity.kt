@@ -261,7 +261,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
             Button(
                 onClick = {
                     if (watching) {
-                        removeGeofence(context) { ok ->
+                        removeGeofence(context, dest.id) { ok ->
                             if (ok) {
                                 watching = false
                                 statusText = "Not watching"
@@ -276,9 +276,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
                         statusText = "Setting up..."
                         registerGeofence(
                             context,
-                            dest.lat,
-                            dest.lon,
-                            (radiusKm * 1000)
+                            dest.copy(radiusMeters = (radiusKm * 1000).roundToInt())
                         ) { ok, error ->
                             if (ok) {
                                 watching = true

@@ -8,8 +8,11 @@ import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingRequest
 import com.google.android.gms.location.LocationServices
 
-const val GEOFENCE_ID = "wakey_destination"
-
+/**
+ * One PendingIntent is shared by every geofence; that is how the API works. The
+ * receiver tells the fences apart by reading triggeringGeofences off the event,
+ * whose request ids are the SavedPlace ids.
+ */
 private fun geofencePendingIntent(context: Context): PendingIntent {
     val intent = Intent(context, GeofenceReceiver::class.java)
     return PendingIntent.getBroadcast(
@@ -20,25 +23,40 @@ private fun geofencePendingIntent(context: Context): PendingIntent {
     )
 }
 
-@SuppressLint("MissingPermission")
-fun registerGeofence(
-    context: Context,
-    lat: Double,
-    lon: Double,
-    radiusMeters: Float,
-    onResult: (Boolean, String?) -> Unit
-) {
-    val geofence = Geofence.Builder()
-        .setRequestId(GEOFENCE_ID)
-        .setCircularRegion(lat, lon, radiusMeters)
+private fun SavedPlace.toGeofence(): Geofence =
+    Geofence.Builder()
+        .setRequestId(id)
+        .setCircularRegion(lat, lon, radiusMeters.toFloat())
         .setExpirationDuration(Geofence.NEVER_EXPIRE)
         .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
         .setNotificationResponsiveness(0)
         .build()
 
+/**
+ * Registers one place. Adding a geofence whose request id already exists replaces
+ * it in place, so this doubles as the way to apply a changed radius.
+ */
+fun registerGeofence(
+    context: Context,
+    place: SavedPlace,
+    onResult: (Boolean, String?) -> Unit
+) = registerGeofences(context, listOf(place), onResult)
+
+/** Bulk register, used on boot to restore everything that was being watched. */
+@SuppressLint("MissingPermission")
+fun registerGeofences(
+    context: Context,
+    places: List<SavedPlace>,
+    onResult: (Boolean, String?) -> Unit
+) {
+    if (places.isEmpty()) {
+        onResult(true, null)
+        return
+    }
+
     val request = GeofencingRequest.Builder()
         .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
-        .addGeofence(geofence)
+        .addGeofences(places.map { it.toGeofence() })
         .build()
 
     try {
@@ -51,9 +69,10 @@ fun registerGeofence(
     }
 }
 
-fun removeGeofence(context: Context, onResult: (Boolean) -> Unit) {
+/** Removes a single place's fence, leaving every other one registered. */
+fun removeGeofence(context: Context, id: String, onResult: (Boolean) -> Unit = {}) {
     LocationServices.getGeofencingClient(context)
-        .removeGeofences(listOf(GEOFENCE_ID))
+        .removeGeofences(listOf(id))
         .addOnSuccessListener { onResult(true) }
         .addOnFailureListener { onResult(false) }
 }
