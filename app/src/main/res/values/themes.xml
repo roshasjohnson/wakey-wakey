@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.ArrivalAlert" parent="android:Theme.Material.Light.NoActionBar" />
+    <!--
+      Dark, and painted the same near-black the Compose theme uses, so launching
+      the app does not flash a white window before the first frame draws.
+    -->
+    <style name="Theme.ArrivalAlert" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/wakey_background</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
 </resources>
