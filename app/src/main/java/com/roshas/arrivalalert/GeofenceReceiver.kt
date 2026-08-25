@@ -33,6 +33,11 @@ class GeofenceReceiver : BroadcastReceiver() {
                 val saved = getPlaces(context).associateBy { it.id }
                 firedIds.forEach { id ->
                     notifyArrival(context, saved[id]?.name, id)
+                    // Fire once. Without this the user keeps getting notified for as
+                    // long as they sit inside the circle. They turn it back on by hand
+                    // next time they travel.
+                    setWatching(context, id, false)
+                    removeGeofence(context, id)
                 }
             } finally {
                 pendingResult.finish()
