@@ -57,14 +57,12 @@ import androidx.compose.material3.Slider
 
 
 
-const val CHANNEL_ID = "arrival_alerts"
-
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        createNotificationChannel()
+        createNotificationChannel(this)
         setContent {
             ArrivalAlertTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -74,15 +72,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Arrival Alerts",
-            NotificationManager.IMPORTANCE_HIGH
-        )
-        channel.description = "Alerts when you are close to your destination"
-        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
-    }
 }
 
 
@@ -297,54 +286,4 @@ fun MainScreen(modifier: Modifier = Modifier) {
             }
         }
     }
-}
-
-
-fun hasLocationPermission(context: Context): Boolean =
-    ContextCompat.checkSelfPermission(
-        context, Manifest.permission.ACCESS_FINE_LOCATION
-    ) == PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(
-                context, Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-
-fun fetchLocation(context: Context, onResult: (Location?) -> Unit) {
-    if (!hasLocationPermission(context)) {
-        onResult(null)
-        return
-    }
-    try {
-        LocationServices.getFusedLocationProviderClient(context)
-            .getCurrentLocation(
-                Priority.PRIORITY_BALANCED_POWER_ACCURACY,
-                CancellationTokenSource().token
-            )
-            .addOnSuccessListener { onResult(it) }
-            .addOnFailureListener { onResult(null) }
-    } catch (e: SecurityException) {
-        onResult(null)
-    }
-}
-
-fun formatDistance(metres: Float): String =
-    if (metres < 1000) "${metres.roundToInt()} m away"
-    else "%.1f km away".format(metres / 1000)
-
-
-fun hasBackgroundLocationPermission(context: Context): Boolean =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_BACKGROUND_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-    } else {
-        true
-    }
-
-fun openAppSettings(context: Context) {
-    val intent = Intent(
-        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-        Uri.fromParts("package", context.packageName, null)
-    )
-    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    context.startActivity(intent)
 }
