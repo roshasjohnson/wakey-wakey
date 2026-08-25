@@ -91,7 +91,8 @@ fun MainScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val destination by destinationFlow(context).collectAsState(initial = null)
+    val places by placesFlow(context).collectAsState(initial = emptyList())
+    val destination = places.firstOrNull()
 
     var query by remember { mutableStateOf("") }
     var results by remember { mutableStateOf<List<Place>>(emptyList()) }
@@ -162,7 +163,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
                             .fillMaxWidth()
                             .clickable {
                                 scope.launch {
-                                    saveDestination(context, place, (radiusKm * 1000).roundToInt())
+                                    addPlace(context, place, (radiusKm * 1000).roundToInt())
                                     query = ""
                                     results = emptyList()
                                     distanceText = null
@@ -249,7 +250,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
                 value = radiusKm,
                 onValueChange = { radiusKm = it },
                 onValueChangeFinished = {
-                    scope.launch { saveRadius(context, (radiusKm * 1000).roundToInt()) }
+                    scope.launch { updateRadius(context, dest.id, (radiusKm * 1000).roundToInt()) }
                 },
                 valueRange = 1f..10f,
                 steps = 17
